@@ -1,0 +1,22 @@
+name: Low stock alert
+
+on:
+  schedule:
+    # 14:00 UTC is 7 AM Mountain Standard Time (8 AM during daylight time).
+    - cron: '0 14 * * *'
+  workflow_dispatch: # lets you run it by hand from the Actions tab
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/low-stock-alert.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          APP_URL: ${{ vars.APP_URL }}
