@@ -135,7 +135,9 @@ async function init() {
   $('.brand').textContent = name;
 
   sb = createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    // Implicit flow lets the emailed sign-in link work even if it opens in a
+    // different browser tab or app than the one that requested it.
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' },
   });
 
   const { data } = await sb.auth.getSession();
@@ -182,21 +184,30 @@ function viewLogin() {
       <h1>Sign in</h1>
       <p class="muted">${scanned
         ? `You scanned bin <strong>${esc(normBin(scanned))}</strong>. Sign in once on this phone and later scans open the bin directly.`
-        : 'Enter your email and we’ll send you a sign-in code.'}</p>
+        : 'Enter your email and we’ll send you a sign-in link.'}</p>
       <form id="emailForm" class="stack">
         <label>Email<input name="email" type="email" required autocomplete="email" inputmode="email"></label>
-        <button class="btn primary" type="submit">Send code</button>
+        <button class="btn primary" type="submit">Email me a sign-in link</button>
       </form>
-      <form id="codeForm" class="stack" hidden>
-        <p>Enter the code we sent to <strong id="sentTo"></strong>.</p>
-        <label>Code<input name="code" required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" maxlength="10"></label>
-        <button class="btn primary" type="submit">Sign in</button>
-        <button class="btn quiet" type="button" id="changeEmail">Use a different email</button>
-      </form>
+      <div id="sent" class="stack" hidden>
+        <p>Check your email at <strong id="sentTo"></strong> and tap the link in it
+          <strong>on this device</strong>. You’ll be signed in here and stay signed in.</p>
+        <p class="muted">If the link opens inside your email app instead of Safari or Chrome, long-press it
+          and choose to open it in your browser. Can’t find the email? Check spam.</p>
+        <details>
+          <summary>My email has a number code instead</summary>
+          <form id="codeForm" class="stack" style="margin-top:12px">
+            <label>Code<input name="code" required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" maxlength="10"></label>
+            <button class="btn primary" type="submit">Sign in</button>
+          </form>
+        </details>
+        <button class="btn quiet" type="button" id="changeEmail">Use a different email or send again</button>
+      </div>
     </section>`);
 
   const ef = $('#emailForm');
   const cf = $('#codeForm');
+  const sent = $('#sent');
   let email = '';
 
   ef.addEventListener('submit', (e) => {
@@ -210,8 +221,7 @@ function viewLogin() {
       if (error) throw error;
       $('#sentTo').textContent = email;
       ef.hidden = true;
-      cf.hidden = false;
-      cf.querySelector('input').focus();
+      sent.hidden = false;
     });
   });
 
@@ -225,7 +235,7 @@ function viewLogin() {
   });
 
   $('#changeEmail').addEventListener('click', () => {
-    cf.hidden = true;
+    sent.hidden = true;
     ef.hidden = false;
   });
 }
